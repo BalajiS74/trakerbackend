@@ -1,70 +1,45 @@
-const express = require('express');
+const express = require("express");
+const multer = require("multer");
+const path = require("path");
+const User = require("../models/userModel");
 const router = express.Router();
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const User = require('../models/userModel');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_here';
-
-// POST /api/signup
-router.post('/signup', async (req, res) => {
-  const { name, email, password } = req.body;
-
-  try {
-    const existingUser = await User.findOne({ email });
-    if (existingUser)
-      return res.status(400).json({ message: 'User already exists' });
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newUser = new User({
-      name,
-      email,
-      password: hashedPassword,
-    });
-
-    await newUser.save();
-
-    res.status(201).json({ message: 'User registered successfully' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error during signup' });
-  }
+// multer config
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/");
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = `${Date.now()}-${file.originalname}`;
+    cb(null, uniqueName);
+  },
 });
+const upload = multer({ storage });
 
+// Serve static image files
+// in server.js: app.use("/uploads", express.static("uploads"))
 
-router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
+router.post("/upload-avatar/:userId", upload.single("avatar"), async (req, res) => {
+  const { userId } = req.params;
+
+  if (!req.file) {
+    return res.status(400).json({ message: "No image uploaded" });
+  }
 
   try {
-    const user = await User.findOne({ email });
-    if (!user)
-      return res.status(401).json({ message: 'Not authorized - user not found' });
+    const imageUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
-      return res.status(401).json({ message: 'Not authorized - wrong password' });
-
-    const token = jwt.sign(
-      { id: user._id, email: user.email },
-      JWT_SECRET,
-      { expiresIn: '1d' }
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { avatar: imageUrl },
+      { new: true }
     );
 
-    res.status(200).json({
-      message: 'Login successful',
-      userToken: token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-      },
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(200).json({ message: "Avatar updated", avatar: updatedUser.avatar });
+  } catch (error) {
+    console.error("Upload failed:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
-
 
 module.exports = router;
