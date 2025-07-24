@@ -16,6 +16,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // Routes
 app.use("/api", require("./routes/auth"));
 app.use("/api/user", require("./routes/user"));
+// ✅ new route
 
 app.get("/", (req, res) => {
   res.json({ message: "Hello from server!" });
