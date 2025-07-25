@@ -100,74 +100,100 @@ router.post("/login", async (req, res) => {
       ]
     });
 
-    if (!user) return res.status(401).json({ message: "User not found" });
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
 
     let role = "student";
-    let isMatch = false;
-    let currentUser = {
+    let current = {
       name: user.name,
       email: user.email,
-      avatar: user.avatar || ""
+      avatar: user.avatar,
+      gender: user.gender,
+      phone: user.phone,
+      address: user.address || "",
     };
 
-    if (user.email === email) {
-      isMatch = await bcrypt.compare(password, user.password);
-    } else if (user.father?.email === email) {
+    let relatedTo = null;
+
+    if (user.father?.email === email) {
       role = "father";
-      isMatch = await bcrypt.compare(password, user.father.password);
-      currentUser = {
+      if (!(await bcrypt.compare(password, user.father.password))) {
+        return res.status(401).json({ message: "Incorrect password" });
+      }
+      current = {
         name: user.father.name,
         email: user.father.email,
-        gender: user.father.gender
+        gender: user.father.gender,
+        phone: user.father.phone,
+        address: user.father.address,
+      };
+      relatedTo = {
+        studentId: user._id,
+        studentName: user.name,
+        studentEmail: user.email,
       };
     } else if (user.mother?.email === email) {
       role = "mother";
-      isMatch = await bcrypt.compare(password, user.mother.password);
-      currentUser = {
+      if (!(await bcrypt.compare(password, user.mother.password))) {
+        return res.status(401).json({ message: "Incorrect password" });
+      }
+      current = {
         name: user.mother.name,
         email: user.mother.email,
-        gender: user.mother.gender
+        gender: user.mother.gender,
+        phone: user.mother.phone,
+        address: user.mother.address,
+      };
+      relatedTo = {
+        studentId: user._id,
+        studentName: user.name,
+        studentEmail: user.email,
       };
     } else if (user.mentor?.email === email) {
       role = "mentor";
-      isMatch = await bcrypt.compare(password, user.mentor.password);
-      currentUser = {
+      if (!(await bcrypt.compare(password, user.mentor.password))) {
+        return res.status(401).json({ message: "Incorrect password" });
+      }
+      current = {
         name: user.mentor.name,
         email: user.mentor.email,
-        gender: user.mentor.gender
+        gender: user.mentor.gender,
+        phone: user.mentor.phone,
+        address: user.mentor.address,
       };
+      relatedTo = {
+        studentId: user._id,
+        studentName: user.name,
+        studentEmail: user.email,
+      };
+    } else {
+      // student login
+      if (!(await bcrypt.compare(password, user.password))) {
+        return res.status(401).json({ message: "Incorrect password" });
+      }
     }
 
-    if (!isMatch)
-      return res.status(401).json({ message: "Incorrect password" });
-
     const token = jwt.sign(
-      { id: user._id, email, role },
+      { id: user._id, email: current.email, role },
       JWT_SECRET,
       { expiresIn: "1d" }
     );
 
-    const response = {
+    res.status(200).json({
       message: "Login successful",
       role,
       userToken: token,
-      currentUser
-    };
+      user: current, // ✅ always a valid object
+      relatedTo: relatedTo || undefined,
+    });
 
-    if (role !== "student") {
-      response.relatedTo = {
-        studentId: user._id,
-        studentName: user.name,
-        studentEmail: user.email
-      };
-    }
-
-    res.status(200).json(response);
-  } catch (err) {
-    console.error("Login error:", err);
+  } catch (error) {
+    console.error("Login error:", error);
     res.status(500).json({ message: "Server error during login" });
   }
 });
+
 
 // === Avatar Upload ===
 const storage = multer.diskStorage({
