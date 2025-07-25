@@ -1,10 +1,33 @@
 const mongoose = require("mongoose");
 
-const UserSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true },
+// Reusable schema for parent/mentor
+const ParentSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  phone: { type: String, required: true },
+  email: { type: String, required: true },
   password: { type: String, required: true },
-  name: String,
-  avatar: { type: String, default: "" }, // <-- Add this line
+  gender: {
+    type: String,
+    enum: ["Male", "Female", "Other"],
+    default: "Other"
+  },
+  address: { type: String }
+}, { _id: false }); // prevent Mongo from creating _id for subdocs
+
+const UserSchema = new mongoose.Schema({
+  email: { type: String, required: true, unique: true }, // student email
+  password: { type: String, required: true },
+  name: { type: String },
+  avatar: { type: String, default: "" },
+  gender: { type: String, enum: ["Male", "Female", "Other"], default: "Other" },
+  collegename: { type: String },
+  dept: { type: String },
+  year: { type: Number },
+  phone: { type: String },
+
+  father: { type: ParentSchema, required: false },
+  mother: { type: ParentSchema, required: false },
+  mentor: { type: ParentSchema, required: false }
 });
 
 module.exports = mongoose.model("User", UserSchema);
