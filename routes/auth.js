@@ -21,7 +21,7 @@ router.post("/signup", async (req, res) => {
       phone,
       father,
       mother,
-      mentor
+      mentor,
     } = req.body;
 
     const existingUser = await User.findOne({
@@ -29,8 +29,8 @@ router.post("/signup", async (req, res) => {
         { email },
         { "father.email": email },
         { "mother.email": email },
-        { "mentor.email": email }
-      ]
+        { "mentor.email": email },
+      ],
     });
 
     if (existingUser) {
@@ -58,7 +58,7 @@ router.post("/signup", async (req, res) => {
       phone,
       father: await hashParent(father),
       mother: await hashParent(mother),
-      mentor: await hashParent(mentor)
+      mentor: await hashParent(mentor),
     });
 
     await newUser.save();
@@ -77,8 +77,8 @@ router.post("/signup", async (req, res) => {
         id: newUser._id,
         name: newUser.name,
         email: newUser.email,
-        avatar: newUser.avatar || ""
-      }
+        avatar: newUser.avatar || "",
+      },
     });
   } catch (err) {
     console.error("Signup error:", err);
@@ -96,8 +96,8 @@ router.post("/login", async (req, res) => {
         { email },
         { "father.email": email },
         { "mother.email": email },
-        { "mentor.email": email }
-      ]
+        { "mentor.email": email },
+      ],
     });
 
     if (!user) {
@@ -106,6 +106,7 @@ router.post("/login", async (req, res) => {
 
     let role = "student";
     let current = {
+      id: user._id,
       name: user.name,
       email: user.email,
       avatar: user.avatar,
@@ -122,6 +123,7 @@ router.post("/login", async (req, res) => {
         return res.status(401).json({ message: "Incorrect password" });
       }
       current = {
+        id: user._id,
         name: user.father.name,
         email: user.father.email,
         gender: user.father.gender,
@@ -139,6 +141,7 @@ router.post("/login", async (req, res) => {
         return res.status(401).json({ message: "Incorrect password" });
       }
       current = {
+        id: user._id,
         name: user.mother.name,
         email: user.mother.email,
         gender: user.mother.gender,
@@ -156,6 +159,7 @@ router.post("/login", async (req, res) => {
         return res.status(401).json({ message: "Incorrect password" });
       }
       current = {
+        id: user._id,
         name: user.mentor.name,
         email: user.mentor.email,
         gender: user.mentor.gender,
@@ -187,42 +191,59 @@ router.post("/login", async (req, res) => {
       user: current, // ✅ always a valid object
       relatedTo: relatedTo || undefined,
     });
-
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ message: "Server error during login" });
   }
 });
 
-
 // === Avatar Upload ===
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
+  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
 });
 const upload = multer({ storage });
 
-router.post("/upload-avatar/:userId", upload.single("avatar"), async (req, res) => {
-  const { userId } = req.params;
+router.post(
+  "/upload-avatar/:userId",
+  upload.single("avatar"),
+  async (req, res) => {
+    const { userId } = req.params;
+    const role = req.query.role; // ✨ added to distinguish parent/mentor
+    const email = req.query.email;
 
-  if (!req.file)
-    return res.status(400).json({ message: "No image uploaded" });
+    if (!req.file)
+      return res.status(400).json({ message: "No image uploaded" });
 
-  try {
-    const imageUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+    try {
+      const imageUrl = `${req.protocol}://${req.get("host")}/uploads/${
+        req.file.filename
+      }`;
+      const user = await User.findById(userId);
 
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { avatar: imageUrl },
-      { new: true }
-    );
+      if (!user) return res.status(404).json({ message: "User not found" });
 
-    res.status(200).json({ message: "Avatar updated", avatar: updatedUser.avatar });
-  } catch (error) {
-    console.error("Upload failed:", error);
-    res.status(500).json({ message: "Server error during avatar upload" });
+      if (role === "student") {
+        user.avatar = imageUrl;
+      } else if (role === "father" && user.father?.email === email) {
+        user.father.avatar = imageUrl;
+      } else if (role === "mother" && user.mother?.email === email) {
+        user.mother.avatar = imageUrl;
+      } else if (role === "mentor" && user.mentor?.email === email) {
+        user.mentor.avatar = imageUrl;
+      } else {
+        return res.status(403).json({ message: "Unauthorized avatar update" });
+      }
+
+      await user.save();
+
+      res.status(200).json({ message: "Avatar updated", avatar: imageUrl });
+    } catch (error) {
+      console.error("Upload failed:", error);
+      res.status(500).json({ message: "Server error during avatar upload" });
+    }
   }
-});
+);
 
 // === Update (Student or Parent) ===
 router.put("/update", async (req, res) => {
@@ -234,8 +255,8 @@ router.put("/update", async (req, res) => {
         { email },
         { "father.email": email },
         { "mother.email": email },
-        { "mentor.email": email }
-      ]
+        { "mentor.email": email },
+      ],
     });
 
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -282,8 +303,8 @@ router.delete("/delete", async (req, res) => {
         { email },
         { "father.email": email },
         { "mother.email": email },
-        { "mentor.email": email }
-      ]
+        { "mentor.email": email },
+      ],
     });
 
     if (!user) return res.status(404).json({ message: "User not found" });
