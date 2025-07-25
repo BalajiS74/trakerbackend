@@ -29,11 +29,13 @@ router.post("/signup", async (req, res) => {
         { email },
         { "father.email": email },
         { "mother.email": email },
-        { "mentor.email": email },
-      ],
+        { "mentor.email": email }
+      ]
     });
-    if (existingUser)
+
+    if (existingUser) {
       return res.status(400).json({ message: "Email already exists" });
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -69,8 +71,8 @@ router.post("/signup", async (req, res) => {
 
     res.status(201).json({
       message: "Signup successful",
-      userToken: token,
       role: "student",
+      userToken: token,
       user: {
         id: newUser._id,
         name: newUser.name,
@@ -145,17 +147,22 @@ router.post("/login", async (req, res) => {
       { expiresIn: "1d" }
     );
 
-    res.status(200).json({
+    const response = {
       message: "Login successful",
       role,
       userToken: token,
-      currentUser,
-      relatedTo: {
+      currentUser
+    };
+
+    if (role !== "student") {
+      response.relatedTo = {
         studentId: user._id,
         studentName: user.name,
         studentEmail: user.email
-      }
-    });
+      };
+    }
+
+    res.status(200).json(response);
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ message: "Server error during login" });
@@ -188,6 +195,93 @@ router.post("/upload-avatar/:userId", upload.single("avatar"), async (req, res) 
   } catch (error) {
     console.error("Upload failed:", error);
     res.status(500).json({ message: "Server error during avatar upload" });
+  }
+});
+
+// === Update (Student or Parent) ===
+router.put("/update", async (req, res) => {
+  const { email, role, updates } = req.body;
+
+  try {
+    const user = await User.findOne({
+      $or: [
+        { email },
+        { "father.email": email },
+        { "mother.email": email },
+        { "mentor.email": email }
+      ]
+    });
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (role === "student") {
+      Object.assign(user, updates);
+      if (updates.password) {
+        user.password = await bcrypt.hash(updates.password, 10);
+      }
+    } else if (role === "father" && user.father?.email === email) {
+      Object.assign(user.father, updates);
+      if (updates.password) {
+        user.father.password = await bcrypt.hash(updates.password, 10);
+      }
+    } else if (role === "mother" && user.mother?.email === email) {
+      Object.assign(user.mother, updates);
+      if (updates.password) {
+        user.mother.password = await bcrypt.hash(updates.password, 10);
+      }
+    } else if (role === "mentor" && user.mentor?.email === email) {
+      Object.assign(user.mentor, updates);
+      if (updates.password) {
+        user.mentor.password = await bcrypt.hash(updates.password, 10);
+      }
+    } else {
+      return res.status(403).json({ message: "Unauthorized update attempt" });
+    }
+
+    await user.save();
+    res.status(200).json({ message: "Update successful" });
+  } catch (err) {
+    console.error("Update error:", err);
+    res.status(500).json({ message: "Server error during update" });
+  }
+});
+
+// === Delete (Student or Remove Parent/Mentor) ===
+router.delete("/delete", async (req, res) => {
+  const { email, role } = req.body;
+
+  try {
+    const user = await User.findOne({
+      $or: [
+        { email },
+        { "father.email": email },
+        { "mother.email": email },
+        { "mentor.email": email }
+      ]
+    });
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (role === "student" && user.email === email) {
+      await User.findByIdAndDelete(user._id);
+      return res.status(200).json({ message: "Student account deleted" });
+    }
+
+    if (role === "father" && user.father?.email === email) {
+      user.father = undefined;
+    } else if (role === "mother" && user.mother?.email === email) {
+      user.mother = undefined;
+    } else if (role === "mentor" && user.mentor?.email === email) {
+      user.mentor = undefined;
+    } else {
+      return res.status(403).json({ message: "Unauthorized delete attempt" });
+    }
+
+    await user.save();
+    res.status(200).json({ message: `${role} removed from account` });
+  } catch (err) {
+    console.error("Delete error:", err);
+    res.status(500).json({ message: "Server error during delete" });
   }
 });
 
