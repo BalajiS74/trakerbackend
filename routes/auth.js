@@ -188,7 +188,10 @@ router.post("/login", async (req, res) => {
       message: "Login successful",
       role,
       userToken: token,
-      user: current, // ✅ always a valid object
+      user: {
+        id: user._id, // ✅ Add this line!
+        ...current, // Spread other fields (name, email, etc.)
+      },
       relatedTo: relatedTo || undefined,
     });
   } catch (error) {
