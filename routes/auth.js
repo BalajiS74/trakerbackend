@@ -113,6 +113,7 @@ router.post("/login", async (req, res) => {
       gender: user.gender,
       phone: user.phone,
       address: user.address || "",
+      parentdata:user.father
     };
 
     let relatedTo = null;
