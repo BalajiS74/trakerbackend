@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-// Reusable schema for parent/mentor
+// Reusable schema for parent/guardian
 const ParentSchema = new mongoose.Schema({
   name: { type: String, required: true },
   phone: { type: String, required: true },
@@ -27,7 +27,7 @@ const UserSchema = new mongoose.Schema({
 
   father: { type: ParentSchema, required: false },
   mother: { type: ParentSchema, required: false },
-  mentor: { type: ParentSchema, required: false }
+  guardian: { type: ParentSchema, required: false }
 });
 
 module.exports = mongoose.model("User", UserSchema);

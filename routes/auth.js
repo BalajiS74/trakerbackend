@@ -21,7 +21,7 @@ router.post("/signup", async (req, res) => {
       phone,
       father,
       mother,
-      mentor,
+      guardian,
     } = req.body;
 
     const existingUser = await User.findOne({
@@ -29,7 +29,7 @@ router.post("/signup", async (req, res) => {
         { email },
         { "father.email": email },
         { "mother.email": email },
-        { "mentor.email": email },
+        { "guardian.email": email },
       ],
     });
 
@@ -58,7 +58,7 @@ router.post("/signup", async (req, res) => {
       phone,
       father: await hashParent(father),
       mother: await hashParent(mother),
-      mentor: await hashParent(mentor),
+      guardian: await hashParent(guardian),
     });
 
     await newUser.save();
@@ -96,7 +96,7 @@ router.post("/login", async (req, res) => {
         { email },
         { "father.email": email },
         { "mother.email": email },
-        { "mentor.email": email },
+        { "guardian.email": email },
       ],
     });
 
@@ -154,18 +154,18 @@ router.post("/login", async (req, res) => {
         studentName: user.name,
         studentEmail: user.email,
       };
-    } else if (user.mentor?.email === email) {
-      role = "mentor";
-      if (!(await bcrypt.compare(password, user.mentor.password))) {
+    } else if (user.guardian?.email === email) {
+      role = "guardian";
+      if (!(await bcrypt.compare(password, user.guardian.password))) {
         return res.status(401).json({ message: "Incorrect password" });
       }
       current = {
         id: user._id,
-        name: user.mentor.name,
-        email: user.mentor.email,
-        gender: user.mentor.gender,
-        phone: user.mentor.phone,
-        address: user.mentor.address,
+        name: user.guardian.name,
+        email: user.guardian.email,
+        gender: user.guardian.gender,
+        phone: user.guardian.phone,
+        address: user.guardian.address,
       };
       relatedTo = {
         studentId: user._id,
@@ -213,7 +213,7 @@ router.post(
   upload.single("avatar"),
   async (req, res) => {
     const { userId } = req.params;
-    const role = req.query.role; // ✨ added to distinguish parent/mentor
+    const role = req.query.role; // ✨ added to distinguish parent/guardian
     const email = req.query.email;
 
     if (!req.file)
@@ -233,8 +233,8 @@ router.post(
         user.father.avatar = imageUrl;
       } else if (role === "mother" && user.mother?.email === email) {
         user.mother.avatar = imageUrl;
-      } else if (role === "mentor" && user.mentor?.email === email) {
-        user.mentor.avatar = imageUrl;
+      } else if (role === "guardian" && user.guardian?.email === email) {
+        user.guardian.avatar = imageUrl;
       } else {
         return res.status(403).json({ message: "Unauthorized avatar update" });
       }
@@ -259,7 +259,7 @@ router.put("/update", async (req, res) => {
         { email },
         { "father.email": email },
         { "mother.email": email },
-        { "mentor.email": email },
+        { "guardian.email": email },
       ],
     });
 
@@ -280,10 +280,10 @@ router.put("/update", async (req, res) => {
       if (updates.password) {
         user.mother.password = await bcrypt.hash(updates.password, 10);
       }
-    } else if (role === "mentor" && user.mentor?.email === email) {
-      Object.assign(user.mentor, updates);
+    } else if (role === "guardian" && user.guardian?.email === email) {
+      Object.assign(user.guardian, updates);
       if (updates.password) {
-        user.mentor.password = await bcrypt.hash(updates.password, 10);
+        user.guardian.password = await bcrypt.hash(updates.password, 10);
       }
     } else {
       return res.status(403).json({ message: "Unauthorized update attempt" });
@@ -297,7 +297,7 @@ router.put("/update", async (req, res) => {
   }
 });
 
-// === Delete (Student or Remove Parent/Mentor) ===
+// === Delete (Student or Remove Parent/guardian) ===
 router.delete("/delete", async (req, res) => {
   const { email, role } = req.body;
 
@@ -307,7 +307,7 @@ router.delete("/delete", async (req, res) => {
         { email },
         { "father.email": email },
         { "mother.email": email },
-        { "mentor.email": email },
+        { "guardian.email": email },
       ],
     });
 
@@ -322,8 +322,8 @@ router.delete("/delete", async (req, res) => {
       user.father = undefined;
     } else if (role === "mother" && user.mother?.email === email) {
       user.mother = undefined;
-    } else if (role === "mentor" && user.mentor?.email === email) {
-      user.mentor = undefined;
+    } else if (role === "guardian" && user.guardian?.email === email) {
+      user.guardian = undefined;
     } else {
       return res.status(403).json({ message: "Unauthorized delete attempt" });
     }
