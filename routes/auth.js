@@ -38,9 +38,8 @@ router.post("/signup", async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
     const hashParent = async (parent) => {
-      if (!parent) return undefined;
+      if (!parent || !parent.password) return parent;
       return {
         ...parent,
         password: await bcrypt.hash(parent.password, 10),
@@ -113,7 +112,7 @@ router.post("/login", async (req, res) => {
       gender: user.gender,
       phone: user.phone,
       address: user.address || "",
-      parentdata:user.father
+      parentdata: user.father,
     };
 
     let relatedTo = null;
