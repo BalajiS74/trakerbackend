@@ -83,22 +83,34 @@ const login = async (req, res) => {
       role: user.role,
     });
 
+    // ✅ Base user info
+    const userResponse = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      gender: user.gender,
+      role: user.role,
+      parents: user.parents || [],
+    };
+
+    // ✅ Add emergencyContact only if user is staff
+    if (user.role === "staff") {
+      userResponse.emergencyContact = user.emergencyContact || null;
+    }
+
     res.status(200).json({
       message: "Login successful",
       token,
       role: user.role,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
+      user: userResponse,
     });
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ message: "Server error during login" });
   }
 };
+
 // === Update Profile ===
 const updateProfile = async (req, res) => {
   try {
