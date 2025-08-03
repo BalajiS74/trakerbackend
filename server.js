@@ -1,44 +1,31 @@
 const express = require("express");
-const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
-const path = require("path");
+const connectDB = require("./config/db");
 
-// Load environment variables from .env file
+// Load env vars
 dotenv.config();
 
+// Create app
 const app = express();
 
 // Middleware
 app.use(cors());
-app.use(express.json()); // Parse JSON request bodies
-
-// Serve static files (for avatar uploads)
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use(express.json()); // Parse JSON
 
 // Routes
-app.use("/api", require("./routes/auth"));       // signup, login, avatar upload
-app.use("/api/user", require("./routes/user"));  // additional user routes (optional)
+app.use("/api/auth", require("./routes/auth.routes")); // Login, signup, update, delete
 
 // Root route
 app.get("/", (req, res) => {
-  res.json({ message: "Hello from the server!" });
+  res.send("🚀 API is running...");
 });
 
-// MongoDB Connection
-mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => {
-    console.log("✅ MongoDB Connected");
+// Connect DB and start server
+const PORT = process.env.PORT || 5000;
 
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () =>
-      console.log(`🚀 Server running at http://localhost:${PORT}`)
-    );
-  })
-  .catch((err) => {
-    console.error("❌ MongoDB connection error:", err.message);
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`🌐 Server running at http://localhost:${PORT}`);
   });
+});
