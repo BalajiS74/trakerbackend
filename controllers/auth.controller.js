@@ -1,7 +1,8 @@
+const path = require("path");
+const fs = require("fs");
 const User = require("../models/User");
 const { hashPassword, comparePassword } = require("../utils/hash");
 const { signToken } = require("../config/jwt");
-
 // === Signup ===
 const signup = async (req, res) => {
   try {
@@ -219,6 +220,37 @@ const forgotPassword = async (req, res) => {
   }
 };
 
+const uploadAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No image file uploaded." });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Optional: delete old avatar file if stored locally
+    if (user.avatar && user.avatar.startsWith("/uploads/avatars/")) {
+      const oldPath = path.join(__dirname, "..", user.avatar);
+      if (fs.existsSync(oldPath)) {
+        fs.unlinkSync(oldPath);
+      }
+    }
+
+    // Save new avatar path (you can also use absolute URL here)
+    user.avatar = `/uploads/avatars/${req.file.filename}`;
+    await user.save();
+
+    return res.status(200).json({
+      message: "Avatar uploaded successfully",
+      avatarUrl: user.avatar,
+    });
+  } catch (err) {
+    console.error("Avatar upload error:", err);
+    res.status(500).json({ message: "Error uploading avatar" });
+  }
+};
+
 module.exports = {
   signup,
   login,
@@ -226,4 +258,5 @@ module.exports = {
   deleteUser,
   getActiveUsers,
   forgotPassword,
+  uploadAvatar, // ✅ export new controller
 };

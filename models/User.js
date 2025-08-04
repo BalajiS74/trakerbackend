@@ -7,7 +7,7 @@ const ContactSchema = new mongoose.Schema(
     phone: { type: String },
     relation: { type: String },
   },
-  { _id: false } // Prevent automatic _id generation in subdocs
+  { _id: false }
 );
 
 const UserSchema = new mongoose.Schema(
@@ -15,15 +15,13 @@ const UserSchema = new mongoose.Schema(
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    phone: { type: String }, // User's own phone number
+    phone: { type: String },
 
-    // ✅ For students — array of contact objects
     parents: {
       type: [ContactSchema],
       default: [],
     },
 
-    // ✅ For staff — single contact object
     emergencyContact: {
       type: ContactSchema,
       default: null,
@@ -41,6 +39,11 @@ const UserSchema = new mongoose.Schema(
       required: true,
     },
 
+    avatar: {
+      type: String, // ✅ URL or file path to uploaded profile photo
+      default: "",  // Could also default to a placeholder image URL
+    },
+
     lastLogin: {
       type: Date,
       default: null,
@@ -49,7 +52,7 @@ const UserSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ✅ Indexes for performance
+// ✅ Indexes
 UserSchema.index({ email: 1 });
 UserSchema.index({ lastLogin: 1 });
 UserSchema.index({ role: 1 });
