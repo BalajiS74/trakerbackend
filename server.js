@@ -19,7 +19,8 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // ✅ Routes
 app.use("/api/auth", require("./routes/auth.routes")); // Avatar route lives here
 app.use("/api/buses", require("./routes/bus.routes")); // Bus availability routes
-
+// ✅ Add report routes
+app.use("/api/reports", require("./routes/report.Routes"));
 // Test root
 app.get("/", (req, res) => {
   res.send("🚀 API is running...");
