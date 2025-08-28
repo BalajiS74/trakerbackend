@@ -5,20 +5,26 @@ const {
   getUserReports,
   getAllReports,
   respondToReport,
+  deleteReport,
 } = require("../controllers/report.Controller");
 
 const { authenticate, requireRole } = require("../middlewares/auth.middleware");
 
-// User creates a report
+// ----------------- USER ROUTES ----------------- //
+
+// Create a new report (any authenticated user)
 router.post("/", authenticate, createReport);
 
-// User gets only their own reports
+// Get all reports for the logged-in user or by ID
 router.get("/user/:userId", authenticate, getUserReports);
+router.delete("/delete/:reportId", authenticate, deleteReport);
 
-// Admin: get all reports
+// ----------------- ADMIN ROUTES ----------------- //
+
+// Get all reports (admin only)
 router.get("/all", authenticate, requireRole(["admin"]), getAllReports);
 
-// Admin: respond to a report
+// Respond to a report (admin only)
 router.put("/respond/:reportId", authenticate, requireRole(["admin"]), respondToReport);
 
 module.exports = router;

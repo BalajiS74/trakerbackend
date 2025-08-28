@@ -1,18 +1,26 @@
 const jwt = require("jsonwebtoken");
 
-const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey123";
+const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || "accesssecret123";
+const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "refreshsecret123";
 
-// Sign token with user payload
-const signToken = (payload) => {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "1d" });
-};
+const ACCESS_EXPIRES = "15m";
+const REFRESH_EXPIRES = "7d";
 
-// Verify token
-const verifyToken = (token) => {
-  return jwt.verify(token, JWT_SECRET);
-};
+// Sign access token
+const signAccessToken = (payload) =>
+  jwt.sign(payload, ACCESS_SECRET, { expiresIn: ACCESS_EXPIRES });
+
+// Sign refresh token
+const signRefreshToken = (payload) =>
+  jwt.sign(payload, REFRESH_SECRET, { expiresIn: REFRESH_EXPIRES });
+
+// Verify tokens
+const verifyAccessToken = (token) => jwt.verify(token, ACCESS_SECRET);
+const verifyRefreshToken = (token) => jwt.verify(token, REFRESH_SECRET);
 
 module.exports = {
-  signToken,
-  verifyToken,
+  signAccessToken,
+  signRefreshToken,
+  verifyAccessToken,
+  verifyRefreshToken,
 };
